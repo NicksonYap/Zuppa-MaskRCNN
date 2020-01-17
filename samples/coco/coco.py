@@ -85,7 +85,8 @@ class CocoConfig(Config):
     # GPU_COUNT = 8
 
     # Number of classes (including background)
-    NUM_CLASSES = 1 + 80  # COCO has 80 classes
+    # NUM_CLASSES = 1 + 80  # COCO has 80 classes
+    NUM_CLASSES = 1 + 5  # COCO has 5 classes
 
 
 ############################################################
@@ -130,9 +131,25 @@ class CocoDataset(utils.Dataset):
             # All images
             image_ids = list(coco.imgs.keys())
 
+        def getClassIdByClassName(class_name, default_class_id):
+            class_name = class_name.lower()
+            mapping = {
+                "sour": 1,
+                "tiger": 2,
+                "lychee": 3,
+                "flower": 4,
+                "milo": 5,
+            }
+            return mapping.get(class_name, default_class_id)
+
         # Add classes
-        for i in class_ids:
-            self.add_class("coco", i, coco.loadCats(i)[0]["name"])
+        for class_id in class_ids:
+            class_name = coco.loadCats(class_id)[0]["name"]
+            # print(class_id, class_name)
+            # self.add_class("coco", class_id, class_name)
+            actual_class_id = getClassIdByClassName(class_name, class_id)
+            print(actual_class_id, class_name)
+            self.add_class("coco", actual_class_id, class_name)
 
         # Add images
         for i in image_ids:
@@ -472,7 +489,14 @@ if __name__ == '__main__':
 
     # Load weights
     print("Loading weights ", model_path)
-    model.load_weights(model_path, by_name=True)
+
+    # Exclude the last layers because they require a matching
+    # number of classes
+    model.load_weights(model_path, by_name=True, exclude=[
+        "mrcnn_class_logits", "mrcnn_bbox_fc",
+        "mrcnn_bbox", "mrcnn_mask"])
+
+    # model.load_weights(model_path, by_name=True)
 
     # Train or evaluate
     if args.command == "train":
@@ -480,13 +504,14 @@ if __name__ == '__main__':
         # validation set, as as in the Mask RCNN paper.
         dataset_train = CocoDataset()
         dataset_train.load_coco(args.dataset, "train", year=args.year, auto_download=args.download)
-        if args.year in '2014':
-            dataset_train.load_coco(args.dataset, "valminusminival", year=args.year, auto_download=args.download)
+        # if args.year in '2014':
+        #     dataset_train.load_coco(args.dataset, "valminusminival", year=args.year, auto_download=args.download)
         dataset_train.prepare()
 
         # Validation dataset
         dataset_val = CocoDataset()
-        val_type = "val" if args.year in '2017' else "minival"
+        # val_type = "val" if args.year in '2017' else "minival"
+        val_type = "val"
         dataset_val.load_coco(args.dataset, val_type, year=args.year, auto_download=args.download)
         dataset_val.prepare()
 
