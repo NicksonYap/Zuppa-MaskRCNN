@@ -49,9 +49,10 @@ import shutil
 
 # Root directory of the project
 ROOT_DIR = os.path.abspath("../../")
+MASK_RCNN_ROOT_DIR = os.path.abspath("../../../Mask_RCNN")
 
 # Import Mask RCNN
-sys.path.append(ROOT_DIR)  # To find local version of the library
+sys.path.append(MASK_RCNN_ROOT_DIR)  # To find local version of the library
 from mrcnn.config import Config
 from mrcnn import model as modellib, utils
 
