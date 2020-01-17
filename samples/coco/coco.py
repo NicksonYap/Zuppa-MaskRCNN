@@ -88,6 +88,10 @@ class CocoConfig(Config):
     # NUM_CLASSES = 1 + 80  # COCO has 80 classes
     NUM_CLASSES = 1 + 5  # COCO has 5 classes
 
+    # Number of training steps per epoch
+    # STEPS_PER_EPOCH = 1000 #default
+    STEPS_PER_EPOCH = 400
+
 
 ############################################################
 #  Dataset
@@ -447,6 +451,9 @@ if __name__ == '__main__':
                         help='Automatically download and unzip MS-COCO files (default=False)',
                         type=bool)
     parser.add_argument('--no_run', help='Do not run training', action='store_true')
+    parser.add_argument('--stage_1', help='Stage 1 (Training network heads)', action='store_true')
+    parser.add_argument('--stage_2', help='Stage 2 (Fine tune Resnet stage 4 and up', action='store_true')
+    parser.add_argument('--stage_3', help='Stage 3 (Fine tune all layers)', action='store_true')
 
     args = parser.parse_args()
     print("Command: ", args.command)
@@ -456,6 +463,9 @@ if __name__ == '__main__':
     print("Logs: ", args.logs)
     print("Auto Download: ", args.download)
     print("No Run: ", args.no_run)
+    print("Stage 1: ", args.stage_1)
+    print("Stage 2: ", args.stage_2)
+    print("Stage 3: ", args.stage_3)
 
     # Configurations
     if args.command == "train":
@@ -526,30 +536,33 @@ if __name__ == '__main__':
             # *** This training schedule is an example. Update to your needs ***
 
             # Training - Stage 1
-            print("Training network heads")
-            model.train(dataset_train, dataset_val,
-                        learning_rate=config.LEARNING_RATE,
-                        epochs=40,
-                        layers='heads',
-                        augmentation=augmentation)
+            if args.stage_1:
+                print("Training network heads")
+                model.train(dataset_train, dataset_val,
+                            learning_rate=config.LEARNING_RATE,
+                            epochs=40,
+                            layers='heads',
+                            augmentation=augmentation)
 
-            # Training - Stage 2
-            # Finetune layers from ResNet stage 4 and up
-            print("Fine tune Resnet stage 4 and up")
-            model.train(dataset_train, dataset_val,
-                        learning_rate=config.LEARNING_RATE,
-                        epochs=120,
-                        layers='4+',
-                        augmentation=augmentation)
+            if args.stage_2:
+                # Training - Stage 2
+                # Finetune layers from ResNet stage 4 and up
+                print("Fine tune Resnet stage 4 and up")
+                model.train(dataset_train, dataset_val,
+                            learning_rate=config.LEARNING_RATE,
+                            epochs=120,
+                            layers='4+',
+                            augmentation=augmentation)
 
-            # Training - Stage 3
-            # Fine tune all layers
-            print("Fine tune all layers")
-            model.train(dataset_train, dataset_val,
-                        learning_rate=config.LEARNING_RATE / 10,
-                        epochs=160,
-                        layers='all',
-                        augmentation=augmentation)
+            if args.stage_3:
+                # Training - Stage 3
+                # Fine tune all layers
+                print("Fine tune all layers")
+                model.train(dataset_train, dataset_val,
+                            learning_rate=config.LEARNING_RATE / 10,
+                            epochs=160,
+                            layers='all',
+                            augmentation=augmentation)
 
     elif args.command == "evaluate":
         # Validation dataset
