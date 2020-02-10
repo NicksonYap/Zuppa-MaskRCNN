@@ -62,7 +62,6 @@ COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
 # Directory to save logs and model checkpoints, if not provided
 # through the command line argument --logs
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
-DEFAULT_DATASET_YEAR = "2014"
 
 ############################################################
 #  Configurations
@@ -99,22 +98,19 @@ class CocoConfig(Config):
 ############################################################
 
 class CocoDataset(utils.Dataset):
-    def load_coco(self, dataset_dir, subset, year=DEFAULT_DATASET_YEAR, class_ids=None,
+    def load_coco(self, dataset_dir, subset, class_ids=None,
                   class_map=None, return_coco=False):
         """Load a subset of the COCO dataset.
         dataset_dir: The root directory of the COCO dataset.
-        subset: What to load (train, val, minival, valminusminival)
-        year: What dataset year to load (2014, 2017) as a string, not an integer
+        subset: What to load (train, val)
         class_ids: If provided, only loads images that have the given classes.
         class_map: TODO: Not implemented yet. Supports maping classes from
             different datasets to the same class ID.
         return_coco: If True, returns the COCO object.
         """
 
-        coco = COCO("{}/annotations/instances_{}{}.json".format(dataset_dir, subset, year))
-        if subset == "minival" or subset == "valminusminival":
-            subset = "val"
-        image_dir = "{}/{}{}".format(dataset_dir, subset, year)
+        coco = COCO("{}/annotations/instances_{}.json".format(dataset_dir, subset))
+        image_dir = "{}/{}".format(dataset_dir, subset)
 
         # Load all classes or a subset?
         if not class_ids:
@@ -355,10 +351,6 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', required=True,
                         metavar="/path/to/coco/",
                         help='Directory of the MS-COCO dataset')
-    parser.add_argument('--year', required=False,
-                        default=DEFAULT_DATASET_YEAR,
-                        metavar="<year>",
-                        help='Year of the MS-COCO dataset (2014 or 2017) (default=2014)')
     parser.add_argument('--model', required=True,
                         metavar="/path/to/weights.h5",
                         help="Path to weights .h5 file or 'coco'")
@@ -384,7 +376,6 @@ if __name__ == '__main__':
     print("Command: ", args.command)
     print("Model: ", args.model)
     print("Dataset: ", args.dataset)
-    print("Year: ", args.year)
     print("Logs: ", args.logs)
     print("Auto Download: ", args.download)
     print("No Run: ", args.no_run)
@@ -441,16 +432,12 @@ if __name__ == '__main__':
         # Training dataset. Use the training set and 35K from the
         # validation set, as as in the Mask RCNN paper.
         dataset_train = CocoDataset()
-        dataset_train.load_coco(args.dataset, "train", year=args.year)
-        # if args.year in '2014':
-        #     dataset_train.load_coco(args.dataset, "valminusminival", year=args.year)
+        dataset_train.load_coco(args.dataset, "train")
         dataset_train.prepare()
 
         # Validation dataset
         dataset_val = CocoDataset()
-        # val_type = "val" if args.year in '2017' else "minival"
-        val_type = "val"
-        dataset_val.load_coco(args.dataset, val_type, year=args.year)
+        dataset_val.load_coco(args.dataset, "val")
         dataset_val.prepare()
 
         if not args.no_run:
@@ -492,8 +479,7 @@ if __name__ == '__main__':
     elif args.command == "evaluate":
         # Validation dataset
         dataset_val = CocoDataset()
-        val_type = "val" if args.year in '2017' else "minival"
-        coco = dataset_val.load_coco(args.dataset, val_type, year=args.year, return_coco=True)
+        coco = dataset_val.load_coco(args.dataset, "val", return_coco=True)
         dataset_val.prepare()
         if not args.no_run:
             print("Running COCO evaluation on {} images.".format(args.limit))
