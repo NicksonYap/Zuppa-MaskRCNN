@@ -69,6 +69,7 @@ DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 
 
 class CocoConfig(Config):
+    #ref: https://github.com/matterport/Mask_RCNN/wiki
     """Configuration for training on MS COCO.
     Derives from the base Config class and overrides values specific
     to the COCO dataset.
@@ -87,6 +88,8 @@ class CocoConfig(Config):
     # Number of classes (including background)
     # NUM_CLASSES = 1 + 80  # COCO has 80 classes
     NUM_CLASSES = 1 + 5  # COCO has 5 classes
+
+    MAX_GT_INSTANCES = 10 #maximum instances per image 
 
     # Number of training steps per epoch
     # STEPS_PER_EPOCH = 1000 #default
@@ -128,23 +131,24 @@ class CocoDataset(utils.Dataset):
             # All images
             image_ids = list(coco.imgs.keys())
 
-        def getClassIdByClassName(class_name, default_class_id):
-            class_name = class_name.lower()
-            mapping = {
-                "sour": 1,
-                "tiger": 2,
-                "lychee": 3,
-                "flower": 4,
-                "milo": 5,
-            }
-            return mapping.get(class_name, default_class_id)
+        # def getClassIdByClassName(class_name, default_class_id):
+        #     class_name = class_name.lower()
+        #     mapping = {
+        #         "sour": 1,
+        #         "tiger": 2,
+        #         "lychee": 3,
+        #         "flower": 4,
+        #         "milo": 5,
+        #     }
+        #     return mapping.get(class_name, default_class_id)
 
         # Add classes
         for class_id in class_ids:
             class_name = coco.loadCats(class_id)[0]["name"]
             # print(class_id, class_name)
             # self.add_class("coco", class_id, class_name)
-            actual_class_id = getClassIdByClassName(class_name, class_id)
+            # actual_class_id = getClassIdByClassName(class_name, class_id) # if enable mapping
+            actual_class_id = class_id # if disable mapping
             print(actual_class_id, class_name)
             self.add_class("coco", actual_class_id, class_name)
 
@@ -444,6 +448,19 @@ if __name__ == '__main__':
             # Image Augmentation
             # Right/Left flip 50% of the time
             augmentation = imgaug.augmenters.Fliplr(0.5)
+
+            augmentation = iaa.Sequential([
+            # iaa.Crop(px=(0, 16)), # crop images from each side by 0 to 16px (randomly chosen)
+            iaa.Fliplr(0.5),  # horizontally flip 50% of the images
+            # iaa.Dropout([0.05, 0.1]),
+            # blur images with a sigma of 0 to 3.0
+            iaa.Sometimes(0.75, iaa.Affine(scale=(0.8, 1.2))),
+            iaa.Sometimes(0.75, iaa.Affine(shear=(-18, 18))),
+            # iaa.GaussianBlur(sigma=(0, 1.0)),
+            iaa.Sometimes(0.75, iaa.ContrastNormalization((0.6, 1.4))),
+            iaa.Sometimes(0.75, iaa.PiecewiseAffine(scale=(0.00, 0.02))),
+            iaa.Sometimes(0.75, iaa.ElasticTransformation(alpha=(0, 6.0), sigma=0.25))
+            ])
 
             # *** This training schedule is an example. Update to your needs ***
 
