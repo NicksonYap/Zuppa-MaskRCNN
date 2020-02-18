@@ -87,13 +87,38 @@ class CocoConfig(Config):
 
     # Number of classes (including background)
     # NUM_CLASSES = 1 + 80  # COCO has 80 classes
-    NUM_CLASSES = 1 + 5  # COCO has 5 classes
+    # NUM_CLASSES = 1 + 5  # COCO has 5 classes
 
     MAX_GT_INSTANCES = 10 #maximum instances per image 
 
     # Number of training steps per epoch
-    # STEPS_PER_EPOCH = 1000 #default
-    STEPS_PER_EPOCH = 400
+    STEPS_PER_EPOCH = 1000 #default
+    # STEPS_PER_EPOCH = 400er
+
+    # RPN_NMS_THRESHOLD=0.7 #default
+    # RPN_NMS_THRESHOLD=0.8 #for training
+    # DETECTION_NMS_THRESHOLD = 0.45 #for detection
+    
+    def __init__(self, dataset_dir, subset, class_ids=None):
+        """Load a subset of the COCO dataset.
+        dataset_dir: The root directory of the COCO dataset.
+        subset: What to load (train, val)
+        class_ids: If provided, only loads images that have the given classes.
+        """
+
+        # coco = COCO("{}/annotations/instances_{}.json".format(dataset_dir, subset))
+        image_dir = "{}/{}".format(dataset_dir, subset)
+        coco = COCO("{}/instances.json".format(image_dir))
+
+        # Load all classes or a subset?
+        if not class_ids:
+            # All classes
+            class_ids = sorted(coco.getCatIds())
+
+        self.NUM_CLASSES = 1 + len(class_ids) # background + classes
+        super().__init__()
+
+
 
 
 ############################################################
@@ -112,8 +137,9 @@ class CocoDataset(utils.Dataset):
         return_coco: If True, returns the COCO object.
         """
 
-        coco = COCO("{}/annotations/instances_{}.json".format(dataset_dir, subset))
+        # coco = COCO("{}/annotations/instances_{}.json".format(dataset_dir, subset))
         image_dir = "{}/{}".format(dataset_dir, subset)
+        coco = COCO("{}/instances.json".format(image_dir))
 
         # Load all classes or a subset?
         if not class_ids:
@@ -389,7 +415,7 @@ if __name__ == '__main__':
 
     # Configurations
     if args.command == "train":
-        config = CocoConfig()
+        config = CocoConfig(args.dataset, "train")
     else:
         class InferenceConfig(CocoConfig):
             # Set batch size to 1 since we'll be running inference on
@@ -397,7 +423,7 @@ if __name__ == '__main__':
             GPU_COUNT = 1
             IMAGES_PER_GPU = 1
             DETECTION_MIN_CONFIDENCE = 0
-        config = InferenceConfig()
+        config = InferenceConfig(args.dataset, "val")
     config.display()
 
     # Create model
@@ -449,17 +475,17 @@ if __name__ == '__main__':
             # Right/Left flip 50% of the time
             augmentation = imgaug.augmenters.Fliplr(0.5)
 
-            augmentation = iaa.Sequential([
-            # iaa.Crop(px=(0, 16)), # crop images from each side by 0 to 16px (randomly chosen)
-            iaa.Fliplr(0.5),  # horizontally flip 50% of the images
-            # iaa.Dropout([0.05, 0.1]),
+            augmentation = imgaug.augmenters.Sequential([
+            # imgaug.augmenters.Crop(px=(0, 16)), # crop images from each side by 0 to 16px (randomly chosen)
+            imgaug.augmenters.Fliplr(0.5),  # horizontally flip 50% of the images
+            # imgaug.augmenters.Dropout([0.05, 0.1]),
             # blur images with a sigma of 0 to 3.0
-            iaa.Sometimes(0.75, iaa.Affine(scale=(0.8, 1.2))),
-            iaa.Sometimes(0.75, iaa.Affine(shear=(-18, 18))),
-            # iaa.GaussianBlur(sigma=(0, 1.0)),
-            iaa.Sometimes(0.75, iaa.ContrastNormalization((0.6, 1.4))),
-            iaa.Sometimes(0.75, iaa.PiecewiseAffine(scale=(0.00, 0.02))),
-            iaa.Sometimes(0.75, iaa.ElasticTransformation(alpha=(0, 6.0), sigma=0.25))
+            # imgaug.augmenters.Sometimes(0.75, imgaug.augmenters.Affine(scale=(0.8, 1.2))),
+            # imgaug.augmenters.Sometimes(0.75, imgaug.augmenters.Affine(shear=(-18, 18))),
+            # imgaug.augmenters.GaussianBlur(sigma=(0, 1.0)),
+            # imgaug.augmenters.Sometimes(0.75, imgaug.augmenters.ContrastNormalization((0.6, 1.4))),
+            # imgaug.augmenters.Sometimes(0.75, imgaug.augmenters.PiecewiseAffine(scale=(0.00, 0.02))),
+            # imgaug.augmenters.Sometimes(0.75, imgaug.augmenters.ElasticTransformation(alpha=(0, 6.0), sigma=0.25))
             ])
 
             # *** This training schedule is an example. Update to your needs ***
