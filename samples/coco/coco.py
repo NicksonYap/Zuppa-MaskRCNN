@@ -88,6 +88,7 @@ class CocoConfig(Config):
     # Number of classes (including background)
     # NUM_CLASSES = 1 + 80  # COCO has 80 classes
     # NUM_CLASSES = 1 + 5  # COCO has 5 classes
+    NUM_CLASSES = None # need to manually set number of classes!
 
     MAX_GT_INSTANCES = 10 #maximum instances per image 
 
@@ -99,23 +100,8 @@ class CocoConfig(Config):
     # RPN_NMS_THRESHOLD=0.8 #for training
     # DETECTION_NMS_THRESHOLD = 0.45 #for detection
     
-    def __init__(self, dataset_dir, subset, class_ids=None):
-        """Load a subset of the COCO dataset.
-        dataset_dir: The root directory of the COCO dataset.
-        subset: What to load (train, val)
-        class_ids: If provided, only loads images that have the given classes.
-        """
-
-        # coco = COCO("{}/annotations/instances_{}.json".format(dataset_dir, subset))
-        image_dir = "{}/{}".format(dataset_dir, subset)
-        coco = COCO("{}/instances.json".format(image_dir))
-
-        # Load all classes or a subset?
-        if not class_ids:
-            # All classes
-            class_ids = sorted(coco.getCatIds())
-
-        self.NUM_CLASSES = 1 + len(class_ids) # background + classes
+    def __init__(self, NUM_CLASSES):
+        self.NUM_CLASSES = NUM_CLASSES
         super().__init__()
 
 
@@ -413,9 +399,16 @@ if __name__ == '__main__':
     print("Stage 2: ", args.stage_2)
     print("Stage 3: ", args.stage_3)
 
+    #get number of classes from coco json file
+    image_dir = "{}/{}".format(args.dataset, 'train')
+    coco = COCO("{}/instances.json".format(image_dir))
+    NUM_CLASSES = 1 + len(sorted(coco.getCatIds())) # background + classes
+    
     # Configurations
     if args.command == "train":
-        config = CocoConfig(args.dataset, "train")
+
+        config = CocoConfig(NUM_CLASSES)
+        
     else:
         class InferenceConfig(CocoConfig):
             # Set batch size to 1 since we'll be running inference on
@@ -423,7 +416,7 @@ if __name__ == '__main__':
             GPU_COUNT = 1
             IMAGES_PER_GPU = 1
             DETECTION_MIN_CONFIDENCE = 0
-        config = InferenceConfig(args.dataset, "val")
+        config = InferenceConfig(NUM_CLASSES)
     config.display()
 
     # Create model
