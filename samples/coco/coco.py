@@ -31,7 +31,7 @@ import os
 import sys
 import time
 import numpy as np
-import imgaug  # https://github.com/aleju/imgaug (pip3 install imgaug)
+from imgaug import augmenters as iaa # https://github.com/aleju/imgaug (pip3 install imgaug)
 
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
@@ -463,22 +463,29 @@ if __name__ == '__main__':
         dataset_val.load_coco(args.dataset, "val")
         dataset_val.prepare()
 
+
         if not args.no_run:
             # Image Augmentation
             # Right/Left flip 50% of the time
-            augmentation = imgaug.augmenters.Fliplr(0.5)
-
-            augmentation = imgaug.augmenters.Sequential([
-            # imgaug.augmenters.Crop(px=(0, 16)), # crop images from each side by 0 to 16px (randomly chosen)
-            imgaug.augmenters.Fliplr(0.5),  # horizontally flip 50% of the images
-            # imgaug.augmenters.Dropout([0.05, 0.1]),
-            # blur images with a sigma of 0 to 3.0
-            # imgaug.augmenters.Sometimes(0.75, imgaug.augmenters.Affine(scale=(0.8, 1.2))),
-            # imgaug.augmenters.Sometimes(0.75, imgaug.augmenters.Affine(shear=(-18, 18))),
-            # imgaug.augmenters.GaussianBlur(sigma=(0, 1.0)),
-            # imgaug.augmenters.Sometimes(0.75, imgaug.augmenters.ContrastNormalization((0.6, 1.4))),
-            # imgaug.augmenters.Sometimes(0.75, imgaug.augmenters.PiecewiseAffine(scale=(0.00, 0.02))),
-            # imgaug.augmenters.Sometimes(0.75, imgaug.augmenters.ElasticTransformation(alpha=(0, 6.0), sigma=0.25))
+            # augmentation = iaa.Fliplr(0.5)
+            
+            # ref: https://github.com/matterport/Mask_RCNN/issues/1229#issuecomment-462735941
+            augmentation = iaa.Sequential([
+            #     iaa.Crop(px=(0, 16)), # crop images from each side by 0 to 16px (randomly chosen)
+                iaa.Fliplr(0.5),  # horizontally flip 50% of the images
+            #     iaa.Dropout([0.05, 0.1]),
+                # blur images with a sigma of 0 to 3.0
+            #     iaa.Sometimes(0.5, iaa.Affine(scale=(0.9, 1.1))),
+            #     iaa.Sometimes(0.5, iaa.Affine(shear=(-16, 16))),
+                iaa.Sometimes(0.5, iaa.ShearX((-3, 3))),
+                iaa.Sometimes(0.5, iaa.ShearY((-3, 3))),
+            #     iaa.GaussianBlur(sigma=(0, 1.0)),
+            #     iaa.Sometimes(0.5, iaa.ContrastNormalization((0.7, 1.3))),
+                iaa.Sometimes(0.5, iaa.ContrastNormalization((0.9, 1.1))),
+            #     iaa.Sometimes(0.5, iaa.PiecewiseAffine(scale=(0.00, 0.015))),
+                iaa.Sometimes(0.5, iaa.PiecewiseAffine(scale=(0.005, 0.025))),
+                iaa.Sometimes(0.5, iaa.ElasticTransformation(alpha=(0, 1.5), sigma=0.05))
+            #     iaa.Sometimes(0.5, iaa.ElasticTransformation(alpha=(0, 5.0), sigma=0.25))
             ])
 
             # *** This training schedule is an example. Update to your needs ***
@@ -511,6 +518,15 @@ if __name__ == '__main__':
                             epochs=160,
                             layers='all',
                             augmentation=augmentation)
+
+            # layers: Allows selecting wich layers to train. It can be:
+            # - A regular expression to match layer names to train
+            # - One of these predefined values:
+            #   heads: The RPN, classifier and mask heads of the network
+            #   all: All the layers
+            #   3+: Train Resnet stage 3 and up
+            #   4+: Train Resnet stage 4 and up
+            #   5+: Train Resnet stage 5 and up
 
     elif args.command == "evaluate":
         # Validation dataset
