@@ -97,7 +97,7 @@ class CocoConfig(Config):
     # STEPS_PER_EPOCH = 400er
 
     # RPN_NMS_THRESHOLD=0.7 #default
-    # RPN_NMS_THRESHOLD=0.8 #for training
+    RPN_NMS_THRESHOLD=0.95 #for training
     # DETECTION_NMS_THRESHOLD = 0.45 #for detection
     
     def __init__(self, NUM_CLASSES):
@@ -471,21 +471,18 @@ if __name__ == '__main__':
             
             # ref: https://github.com/matterport/Mask_RCNN/issues/1229#issuecomment-462735941
             augmentation = iaa.Sequential([
-            #     iaa.Crop(px=(0, 16)), # crop images from each side by 0 to 16px (randomly chosen)
+                iaa.Crop(px=(0, 20)), # crop images from each side by 0 to 16px (randomly chosen)
                 iaa.Fliplr(0.5),  # horizontally flip 50% of the images
-            #     iaa.Dropout([0.05, 0.1]),
-                # blur images with a sigma of 0 to 3.0
-            #     iaa.Sometimes(0.5, iaa.Affine(scale=(0.9, 1.1))),
-            #     iaa.Sometimes(0.5, iaa.Affine(shear=(-16, 16))),
-                iaa.Sometimes(0.5, iaa.ShearX((-3, 3))),
-                iaa.Sometimes(0.5, iaa.ShearY((-3, 3))),
-            #     iaa.GaussianBlur(sigma=(0, 1.0)),
-            #     iaa.Sometimes(0.5, iaa.ContrastNormalization((0.7, 1.3))),
+            #     iaa.Flipud(0.5), #vertically flip
+                iaa.Affine(scale=(0.85, 1.1)),
+                iaa.Multiply((0.85, 1.1)),
+                
+                iaa.Sometimes(0.5, iaa.GaussianBlur(sigma=(0, 1.0))),
+                iaa.Sometimes(0.5, iaa.ShearX((-8, 8))),
+                iaa.Sometimes(0.5, iaa.ShearY((-4, 4))),
                 iaa.Sometimes(0.5, iaa.ContrastNormalization((0.9, 1.1))),
-            #     iaa.Sometimes(0.5, iaa.PiecewiseAffine(scale=(0.00, 0.015))),
-                iaa.Sometimes(0.5, iaa.PiecewiseAffine(scale=(0.005, 0.025))),
-                iaa.Sometimes(0.5, iaa.ElasticTransformation(alpha=(0, 1.5), sigma=0.05))
-            #     iaa.Sometimes(0.5, iaa.ElasticTransformation(alpha=(0, 5.0), sigma=0.25))
+                iaa.Sometimes(0.5, iaa.PiecewiseAffine(scale=(0.005, 0.01255))),
+                iaa.Sometimes(0.5, iaa.ElasticTransformation(alpha=(0, 1), sigma=0.05))
             ])
 
             # *** This training schedule is an example. Update to your needs ***
@@ -494,28 +491,44 @@ if __name__ == '__main__':
             if args.stage_1:
                 print("Training network heads")
                 model.train(dataset_train, dataset_val,
-                            learning_rate=config.LEARNING_RATE,
-                            epochs=40,
+                            learning_rate=config.LEARNING_RATE/2,
+                            epochs=40*2,
                             layers='heads',
                             augmentation=augmentation)
 
             if args.stage_2:
                 # Training - Stage 2
+
+                # print("Fine tune Resnet stage 3 and up")
+                # model.train(dataset_train, dataset_val,
+                #             learning_rate=config.LEARNING_RATE/2,
+                #             epochs=80*2,
+                #             layers='3+',
+                #             augmentation=augmentation)
+
                 # Finetune layers from ResNet stage 4 and up
                 print("Fine tune Resnet stage 4 and up")
                 model.train(dataset_train, dataset_val,
-                            learning_rate=config.LEARNING_RATE,
-                            epochs=120,
+                            learning_rate=config.LEARNING_RATE/2,
+                            epochs=120*2,
                             layers='4+',
                             augmentation=augmentation)
 
             if args.stage_3:
                 # Training - Stage 3
+
+                # print("Fine tune Resnet stage 5 and up")
+                # model.train(dataset_train, dataset_val,
+                #             learning_rate=config.LEARNING_RATE/ 5 / 2,
+                #             epochs=140*2,
+                #             layers='5+',
+                #             augmentation=augmentation)
+                            
                 # Fine tune all layers
                 print("Fine tune all layers")
                 model.train(dataset_train, dataset_val,
-                            learning_rate=config.LEARNING_RATE / 10,
-                            epochs=160,
+                            learning_rate=config.LEARNING_RATE / 10 / 2,
+                            epochs=160*2,
                             layers='all',
                             augmentation=augmentation)
 
