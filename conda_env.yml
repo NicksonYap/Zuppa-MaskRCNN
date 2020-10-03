@@ -1,0 +1,33 @@
+name: Zuppa-MaskRCNN
+dependencies:
+  - python=3.6
+  - jupyterlab
+  - conda-forge::ipywidgets
+  - pip
+  ### MaskRCNN dependencies - ref: https://github.com/matterport/Mask_RCNN/blob/master/requirements.txt
+  - numpy
+  - scipy 
+  - pillow 
+  - cython
+  - matplotlib
+  - scikit-image
+  # - tensorflow=1.13.1 
+  - tensorflow-gpu=1.13.1 
+  - cudatoolkit=10.0
+  - conda-forge::keras=2.2.4
+  - conda-forge::opencv
+  - h5py
+  - imgaug
+  ### Other MaskRCNN dependencies
+  - pandas
+  - requests
+  - six
+  - imageio
+  - Shapely 
+  - scikit-learn
+  - pyusb
+  # - conda-forge::pycocotools # NOT SUPPORTED ON WINDOWS
+  - pip:
+    - pycocotools-windows # WINDOWS ONLY!
+    - nms
+    
